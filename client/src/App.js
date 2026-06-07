@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function App() {
+  const BASE_URL = "https://habit-tracker-bur8.onrender.com/api/habits";
+
   const [habits, setHabits] = useState([]);
   const [title, setTitle] = useState("");
   const [editId, setEditId] = useState(null);
@@ -11,18 +13,20 @@ function App() {
     fetchHabits();
   }, []);
 
+  // GET habits
   const fetchHabits = () => {
     axios
-      .get("http://localhost:5000/api/habits")
+      .get(BASE_URL)
       .then((res) => setHabits(res.data))
       .catch((err) => console.log(err));
   };
 
+  // ADD habit
   const addHabit = () => {
     if (!title.trim()) return;
 
     axios
-      .post("http://localhost:5000/api/habits", { title })
+      .post(BASE_URL, { title })
       .then(() => {
         setTitle("");
         fetchHabits();
@@ -30,33 +34,34 @@ function App() {
       .catch((err) => console.log(err));
   };
 
+  // DELETE habit
   const deleteHabit = (id) => {
     axios
-      .delete(`http://localhost:5000/api/habits/${id}`)
+      .delete(`${BASE_URL}/${id}`)
       .then(() => fetchHabits())
       .catch((err) => console.log(err));
   };
 
-  // 🔥 FIXED TOGGLE (MOST RELIABLE WAY)
+  // TOGGLE complete / undo
   const toggleHabit = (id) => {
     axios
-      .put(`http://localhost:5000/api/habits/${id}`)
-      .then(() => {
-        fetchHabits(); // always refresh from backend
-      })
+      .put(`${BASE_URL}/${id}`)
+      .then(() => fetchHabits())
       .catch((err) => console.log(err));
   };
 
+  // START edit
   const startEdit = (habit) => {
     setEditId(habit._id);
     setEditText(habit.title);
   };
 
+  // SAVE edit
   const saveEdit = (id) => {
     if (!editText.trim()) return;
 
     axios
-      .put(`http://localhost:5000/api/habits/${id}`, {
+      .put(`${BASE_URL}/${id}`, {
         title: editText,
       })
       .then(() => {
@@ -68,15 +73,7 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        padding: "30px",
-        maxWidth: "500px",
-        margin: "auto",
-        fontFamily: "Arial",
-        textAlign: "center",
-      }}
-    >
+    <div style={{ padding: "30px", maxWidth: "500px", margin: "auto", fontFamily: "Arial", textAlign: "center" }}>
       <h1>🔥 Habit Tracker</h1>
 
       {/* ADD */}
@@ -85,25 +82,12 @@ function App() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter new habit"
-          style={{
-            padding: "10px",
-            width: "70%",
-            borderRadius: "5px",
-            border: "1px solid gray",
-          }}
+          style={{ padding: "10px", width: "70%", borderRadius: "5px", border: "1px solid gray" }}
         />
 
         <button
           onClick={addHabit}
-          style={{
-            marginLeft: "10px",
-            padding: "10px",
-            borderRadius: "5px",
-            border: "none",
-            backgroundColor: "#28a745",
-            color: "white",
-            cursor: "pointer",
-          }}
+          style={{ marginLeft: "10px", padding: "10px", borderRadius: "5px", border: "none", backgroundColor: "#28a745", color: "white", cursor: "pointer" }}
         >
           Add
         </button>
@@ -129,13 +113,9 @@ function App() {
             <span style={{ flex: 1 }}>
               {habit.title}{" "}
               {habit.completed ? (
-                <span style={{ color: "green", fontWeight: "bold" }}>
-                  ✅
-                </span>
+                <span style={{ color: "green", fontWeight: "bold" }}>✅</span>
               ) : (
-                <span style={{ color: "red", fontWeight: "bold" }}>
-                  ❌
-                </span>
+                <span style={{ color: "red", fontWeight: "bold" }}>❌</span>
               )}
             </span>
 
@@ -155,31 +135,18 @@ function App() {
               {habit.completed ? "Undo" : "Complete"}
             </button>
 
-            {/* EDIT MODE */}
+            {/* EDIT */}
             {editId === habit._id ? (
               <>
                 <input
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  style={{
-                    marginRight: "5px",
-                    padding: "5px",
-                    borderRadius: "4px",
-                    border: "1px solid gray",
-                  }}
+                  style={{ marginRight: "5px", padding: "5px", borderRadius: "4px", border: "1px solid gray" }}
                 />
 
                 <button
                   onClick={() => saveEdit(habit._id)}
-                  style={{
-                    backgroundColor: "#007bff",
-                    color: "white",
-                    border: "none",
-                    padding: "6px 10px",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                    marginRight: "5px",
-                  }}
+                  style={{ backgroundColor: "#007bff", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}
                 >
                   Save
                 </button>
@@ -187,15 +154,7 @@ function App() {
             ) : (
               <button
                 onClick={() => startEdit(habit)}
-                style={{
-                  backgroundColor: "#ffc107",
-                  color: "black",
-                  border: "none",
-                  padding: "6px 10px",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  marginRight: "5px",
-                }}
+                style={{ backgroundColor: "#ffc107", color: "black", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}
               >
                 Edit
               </button>
@@ -204,14 +163,7 @@ function App() {
             {/* DELETE */}
             <button
               onClick={() => deleteHabit(habit._id)}
-              style={{
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
+              style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer" }}
             >
               Delete
             </button>
