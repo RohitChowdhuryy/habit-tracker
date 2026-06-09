@@ -2,31 +2,88 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 function App() {
-  const BASE_URL = "https://habit-tracker-bur8.onrender.com/api/habits";
+  const BASE_URL =
+    "https://habit-tracker-bur8.onrender.com/api/habits";
 
   const [habits, setHabits] = useState([]);
   const [title, setTitle] = useState("");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  useEffect(() => {
-    fetchHabits();
-  }, []);
+  // 🔐 AUTH STATES
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [token, setToken] = useState(
+    localStorage.getItem("token") || ""
+  );
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    !!localStorage.getItem("token")
+  );
 
+  useEffect(() => {
+    if (token) {
+      fetchHabits();
+    }
+  }, [token]);
+
+  // =====================
+  // LOGIN
+  // =====================
+  const login = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/login",
+        {
+          email,
+          password,
+        }
+      );
+
+      localStorage.setItem("token", res.data.token);
+      setToken(res.data.token);
+      setIsLoggedIn(true);
+
+      fetchHabits();
+    } catch (err) {
+      console.log(err);
+      alert("Login failed");
+    }
+  };
+
+  // =====================
+  // LOGOUT
+  // =====================
+  const logout = () => {
+    localStorage.removeItem("token");
+    setToken("");
+    setIsLoggedIn(false);
+    setHabits([]);
+  };
+
+  // =====================
   // GET habits
+  // =====================
   const fetchHabits = () => {
     axios
-      .get(BASE_URL)
+      .get(BASE_URL, {
+        headers: { Authorization: token },
+      })
       .then((res) => setHabits(res.data))
       .catch((err) => console.log(err));
   };
 
+  // =====================
   // ADD habit
+  // =====================
   const addHabit = () => {
     if (!title.trim()) return;
 
     axios
-      .post(BASE_URL, { title })
+      .post(
+        BASE_URL,
+        { title },
+        { headers: { Authorization: token } }
+      )
       .then(() => {
         setTitle("");
         fetchHabits();
@@ -34,36 +91,49 @@ function App() {
       .catch((err) => console.log(err));
   };
 
-  // DELETE habit
+  // =====================
+  // DELETE
+  // =====================
   const deleteHabit = (id) => {
     axios
-      .delete(`${BASE_URL}/${id}`)
+      .delete(`${BASE_URL}/${id}`, {
+        headers: { Authorization: token },
+      })
       .then(() => fetchHabits())
       .catch((err) => console.log(err));
   };
 
-  // TOGGLE complete / undo
+  // =====================
+  // TOGGLE
+  // =====================
   const toggleHabit = (id) => {
     axios
-      .put(`${BASE_URL}/${id}`)
+      .put(
+        `${BASE_URL}/${id}`,
+        {},
+        { headers: { Authorization: token } }
+      )
       .then(() => fetchHabits())
       .catch((err) => console.log(err));
   };
 
-  // START edit
+  // =====================
+  // EDIT
+  // =====================
   const startEdit = (habit) => {
     setEditId(habit._id);
     setEditText(habit.title);
   };
 
-  // SAVE edit
   const saveEdit = (id) => {
     if (!editText.trim()) return;
 
     axios
-      .put(`${BASE_URL}/${id}`, {
-        title: editText,
-      })
+      .put(
+        `${BASE_URL}/${id}`,
+        { title: editText },
+        { headers: { Authorization: token } }
+      )
       .then(() => {
         setEditId(null);
         setEditText("");
@@ -73,103 +143,156 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "30px", maxWidth: "500px", margin: "auto", fontFamily: "Arial", textAlign: "center" }}>
+    <div
+      style={{
+        padding: "30px",
+        maxWidth: "500px",
+        margin: "auto",
+        fontFamily: "Arial",
+        textAlign: "center",
+      }}
+    >
       <h1>🔥 Habit Tracker</h1>
 
-      {/* ADD */}
-      <div style={{ marginBottom: "20px" }}>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter new habit"
-          style={{ padding: "10px", width: "70%", borderRadius: "5px", border: "1px solid gray" }}
-        />
+      {/* ================= LOGIN ================= */}
+      {!isLoggedIn ? (
+        <div style={{ marginBottom: "20px" }}>
+          <h3>Login</h3>
 
-        <button
-          onClick={addHabit}
-          style={{ marginLeft: "10px", padding: "10px", borderRadius: "5px", border: "none", backgroundColor: "#28a745", color: "white", cursor: "pointer" }}
-        >
-          Add
-        </button>
-      </div>
+          <input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ margin: "5px", padding: "8px" }}
+          />
 
-      {/* LIST */}
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {habits.map((habit) => (
-          <li
-            key={habit._id}
+          <br />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ margin: "5px", padding: "8px" }}
+          />
+
+          <br />
+
+          <button
+            onClick={login}
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "12px",
-              marginBottom: "10px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              backgroundColor: habit.completed ? "#e6ffe6" : "#f9f9f9",
+              padding: "8px 12px",
+              marginTop: "10px",
+              backgroundColor: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
             }}
           >
-            {/* TITLE + STATUS */}
-            <span style={{ flex: 1 }}>
-              {habit.title}{" "}
-              {habit.completed ? (
-                <span style={{ color: "green", fontWeight: "bold" }}>✅</span>
-              ) : (
-                <span style={{ color: "red", fontWeight: "bold" }}>❌</span>
-              )}
-            </span>
+            Login
+          </button>
+        </div>
+      ) : (
+        <div style={{ marginBottom: "20px" }}>
+          <p>✅ Logged in</p>
+          <button onClick={logout}>Logout</button>
+        </div>
+      )}
 
-            {/* COMPLETE / UNDO */}
-            <button
-              onClick={() => toggleHabit(habit._id)}
+      {/* ================= HABITS ================= */}
+      {isLoggedIn && (
+        <>
+          {/* ADD */}
+          <div style={{ marginBottom: "20px" }}>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter new habit"
               style={{
-                backgroundColor: habit.completed ? "#6c757d" : "#28a745",
+                padding: "10px",
+                width: "70%",
+                borderRadius: "5px",
+                border: "1px solid gray",
+              }}
+            />
+
+            <button
+              onClick={addHabit}
+              style={{
+                marginLeft: "10px",
+                padding: "10px",
+                backgroundColor: "#28a745",
                 color: "white",
                 border: "none",
-                padding: "6px 10px",
                 borderRadius: "5px",
-                cursor: "pointer",
-                marginRight: "5px",
               }}
             >
-              {habit.completed ? "Undo" : "Complete"}
+              Add
             </button>
+          </div>
 
-            {/* EDIT */}
-            {editId === habit._id ? (
-              <>
-                <input
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  style={{ marginRight: "5px", padding: "5px", borderRadius: "4px", border: "1px solid gray" }}
-                />
-
-                <button
-                  onClick={() => saveEdit(habit._id)}
-                  style={{ backgroundColor: "#007bff", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}
-                >
-                  Save
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => startEdit(habit)}
-                style={{ backgroundColor: "#ffc107", color: "black", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}
+          {/* LIST */}
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {habits.map((habit) => (
+              <li
+                key={habit._id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "10px",
+                  border: "1px solid #ddd",
+                  marginBottom: "10px",
+                  flexDirection: "column",
+                  textAlign: "left",
+                }}
               >
-                Edit
-              </button>
-            )}
+                {/* MAIN INFO */}
+                <span style={{ flex: 1 }}>
+                  {habit.title}{" "}
+                  {habit.completed ? "✅" : "❌"}
+                  <br />
+                  (XP: {habit.xp} | Level: {habit.level} | 🔥 Streak: {habit.streak})
+                </span>
 
-            {/* DELETE */}
-            <button
-              onClick={() => deleteHabit(habit._id)}
-              style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", cursor: "pointer" }}
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+                {/* 🏆 BADGES */}
+                {habit.badges && habit.badges.length > 0 && (
+                  <div style={{ marginTop: "5px", fontSize: "12px" }}>
+                    🏆 Badges: {habit.badges.join(", ")}
+                  </div>
+                )}
+
+                {/* BUTTONS */}
+                <div style={{ marginTop: "10px" }}>
+                  <button onClick={() => toggleHabit(habit._id)}>
+                    Toggle
+                  </button>
+
+                  <button onClick={() => startEdit(habit)}>
+                    Edit
+                  </button>
+
+                  <button onClick={() => deleteHabit(habit._id)}>
+                    Delete
+                  </button>
+                </div>
+
+                {/* EDIT INPUT */}
+                {editId === habit._id && (
+                  <div style={{ marginTop: "10px" }}>
+                    <input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                    />
+                    <button onClick={() => saveEdit(habit._id)}>
+                      Save
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
