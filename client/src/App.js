@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
 function App() {
@@ -21,10 +21,10 @@ function App() {
   );
 
   useEffect(() => {
-    if (token) {
-      fetchHabits();
-    }
-  }, [token]);
+  if (token) {
+    fetchHabits();
+  }
+}, [token, fetchHabits]);
 
   // =====================
   // LOGIN
@@ -63,14 +63,14 @@ function App() {
   // =====================
   // GET habits
   // =====================
-  const fetchHabits = () => {
-    axios
-      .get(BASE_URL, {
-        headers: { Authorization: token },
-      })
-      .then((res) => setHabits(res.data))
-      .catch((err) => console.log(err));
-  };
+  const fetchHabits = useCallback(() => {
+  axios
+    .get(BASE_URL, {
+      headers: { Authorization: token },
+    })
+    .then((res) => setHabits(res.data))
+    .catch((err) => console.log(err));
+}, [token]);
 
   // =====================
   // ADD habit
